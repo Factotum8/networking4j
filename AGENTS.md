@@ -28,6 +28,7 @@ CLI integration: Claude API and Codex API (architecture — see open questions i
 3. A fork in the road or missing information during work — ask again, don't proceed "at your own discretion."
 4. After a major stage — a short report on what's done and what's next, wait for confirmation.
 5. Explicit user permission ("your call") waives rule 1 for that specific decision — but not by default.
+6. **Prefer sub-agents for independent, parallelizable work.** When a task splits into unrelated chunks — searching across different parts of the codebase, reading multiple unrelated files, running independent checks — dispatch sub-agents for them concurrently (in a single batch) instead of doing them one by one. This keeps the main context lean and cuts wall-clock time. For a single sequential step (one file read, one small edit) handle it directly — spinning up a sub-agent there adds overhead without any speed-up.
 
 ---
 
