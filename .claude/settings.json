@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(xmllint --noout *)",
+      "Bash(pixi *)",
+      "Bash(git *)",
+      "Bash(make *)"
+    ]
+  }
+}

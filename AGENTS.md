@@ -10,7 +10,7 @@ Related documents:
 A personal networking base with visual analysis of connections between people (a graph of contacts, companies, events, communities, projects, and interests). See the spec above for details.
 
 ## Technology stack
-
+Rf
 ```
 FastAPI + neo4j async driver + Pydantic v2 (Cypher repositories)
 Neo4j Community in Docker (or Aura Free)

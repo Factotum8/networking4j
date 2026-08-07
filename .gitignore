@@ -147,6 +147,9 @@ activemq-data/
 # SageMath parsed files
 *.sage.py
 
+# Neo4j local backups/dumps (docker-compose ./backups volume)
+/backups/
+
 # Environments
 .env
 .envrc
@@ -216,3 +219,6 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+# pixi environments
+.pixi/*
+!.pixi/config.toml

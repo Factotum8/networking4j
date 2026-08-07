@@ -1,0 +1,21 @@
+services:
+  neo4j:
+    image: neo4j:5-community
+    container_name: networking4j-neo4j
+    ports:
+      - "7474:7474" # HTTP browser UI
+      - "7687:7687" # Bolt
+    environment:
+      NEO4J_AUTH: "${NEO4J_USER:-neo4j}/${NEO4J_PASSWORD:-neo4j}"
+      NEO4J_PLUGINS: '["apoc"]'
+    volumes:
+      - neo4j_data:/data
+      - ./backups:/backups
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:7474"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  neo4j_data:
