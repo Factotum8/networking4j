@@ -170,6 +170,63 @@ class LinkRepository(Repository):
         records = await self._run(query, contact_id=contact_id)
         return [Relative.model_validate({**r["props"], "id": r["id"]}) for r in records]
 
+    # --- Cross-contact "list everything" views (stage 4: full-graph backup) ---
+
+    async def list_all_interactions(self) -> list[dict[str, Any]]:
+        query = (
+            "MATCH (c:Contact)-[:HAD_INTERACTION]->(i:Interaction) "
+            "RETURN elementId(c) AS contact_id, elementId(i) AS id, i {.*} AS props"
+        )
+        records = await self._run(query)
+        return [
+            {
+                "contact_id": r["contact_id"],
+                "interaction": Interaction.model_validate({**r["props"], "id": r["id"]}),
+            }
+            for r in records
+        ]
+
+    async def list_all_relatives(self) -> list[dict[str, Any]]:
+        query = (
+            "MATCH (c:Contact)-[:HAS_RELATIVE]->(r:Relative) "
+            "RETURN elementId(c) AS contact_id, elementId(r) AS id, r {.*} AS props"
+        )
+        records = await self._run(query)
+        return [
+            {
+                "contact_id": r["contact_id"],
+                "relative": Relative.model_validate({**r["props"], "id": r["id"]}),
+            }
+            for r in records
+        ]
+
+    async def list_all_knows(self) -> list[dict[str, Any]]:
+        query = (
+            "MATCH (a:Contact)-[r:KNOWS]->(b:Contact) "
+            "RETURN elementId(a) AS from_id, elementId(b) AS to_id, r {.*} AS props"
+        )
+        records = await self._run(query)
+        return [
+            {
+                "from_id": r["from_id"],
+                "to_id": r["to_id"],
+                "knows": Knows.model_validate(r["props"]),
+            }
+            for r in records
+        ]
+
+    async def list_all_dimension_links(self) -> list[Mapping[str, Any]]:
+        """Every property-less Contact -> dimension-node edge (WORKS_AT/
+        ATTENDED/MEMBER_OF/INVOLVED_IN/INTERESTED_IN/TAGGED), generically —
+        one query instead of six near-identical ones."""
+        query = (
+            "MATCH (c:Contact)-[rel]->(t) WHERE type(rel) IN $rel_types "
+            "RETURN elementId(c) AS contact_id, type(rel) AS rel_type, "
+            "labels(t)[0] AS target_label, elementId(t) AS target_id"
+        )
+        rel_types = [rel_type.value for rel_type in DimensionLinkType]
+        return await self._run(query, rel_types=rel_types)
+
     async def upcoming_birthdays(self, *, within_days: int) -> list[Mapping[str, Any]]:
         """Contacts' own birthdays + their relatives', due within N days —
         backs the CLI "birthdays" scenario (item 5). Compares month/day only

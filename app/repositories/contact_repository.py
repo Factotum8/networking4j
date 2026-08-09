@@ -47,6 +47,38 @@ class ContactRepository(Repository):
         assert record is not None
         return _to_contact(record)
 
+    async def bulk_create(self, contacts: list[Contact]) -> list[Contact]:
+        """Batched creation for import (stage 4) — one round trip via
+        UNWIND instead of N. No MERGE-by-key: unlike the dimension nodes,
+        Contact has no unique-identifying property in the graph model, so
+        every row unconditionally creates a new node; de-duplication is the
+        separate, detection-only dedup feature (stage 3), not an
+        import-time merge.
+
+        Each row carries its own list index through the query and the
+        result is explicitly re-sorted by it — Cypher doesn't guarantee
+        UNWIND's input order survives to the output otherwise, and callers
+        (import row -> created contact, e.g. for dimension linking) rely on
+        position-for-position correspondence with the input list.
+        """
+        if not contacts:
+            return []
+        now = datetime.now(UTC)
+        rows = []
+        for idx, contact in enumerate(contacts):
+            props = contact.model_dump(exclude={"id"}, exclude_none=True)
+            props["created_at"] = now
+            props["updated_at"] = now
+            rows.append({"idx": idx, "props": props})
+        query = (
+            "UNWIND $rows AS row "
+            "CREATE (c:Contact) SET c = row.props "
+            "RETURN row.idx AS idx, elementId(c) AS id, c {.*} AS props "
+            "ORDER BY row.idx"
+        )
+        records = await self._run(query, rows=rows)
+        return [_to_contact(r) for r in records]
+
     async def get(self, contact_id: str) -> Contact | None:
         query = (
             "MATCH (c:Contact) WHERE elementId(c) = $id RETURN elementId(c) AS id, c {.*} AS props"

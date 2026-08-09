@@ -12,12 +12,15 @@ from neo4j import AsyncDriver
 
 from app.handlers.contact_handler import ContactHandler
 from app.handlers.goal_handler import GoalHandler
+from app.handlers.import_export_handler import ImportExportHandler
 from app.handlers.link_handler import LinkHandler
 from app.handlers.search_handler import SearchHandler
 from app.handlers.settings_handler import SettingsHandler
+from app.models.dimensions import Company, Interest, Tag
 from app.repositories.contact_repository import ContactRepository
 from app.repositories.goal_repository import MonthlyGoalRepository, NetworkingGoalRepository
 from app.repositories.link_repository import LinkRepository
+from app.repositories.named_node_repository import NamedNodeRepository
 from app.repositories.settings_repository import SettingsRepository
 
 
@@ -46,3 +49,14 @@ def get_settings_handler(request: Request) -> SettingsHandler:
 def get_search_handler(request: Request) -> SearchHandler:
     driver = get_driver(request)
     return SearchHandler(ContactRepository(driver), SettingsRepository(driver))
+
+
+def get_import_export_handler(request: Request) -> ImportExportHandler:
+    driver = get_driver(request)
+    return ImportExportHandler(
+        ContactRepository(driver),
+        LinkRepository(driver),
+        NamedNodeRepository(driver, "Company", Company),
+        NamedNodeRepository(driver, "Tag", Tag),
+        NamedNodeRepository(driver, "Interest", Interest),
+    )
