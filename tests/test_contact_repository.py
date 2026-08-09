@@ -75,6 +75,17 @@ async def test_contact_repository_round_trip_against_real_neo4j() -> None:
             stale = await repo.list_stale(threshold_days=1)
             assert any(s["contact"].id == created.id for s in stale)
 
+            # Stage 3: full-text search over name/notes, via the
+            # contact_fulltext Lucene index created in ensure_schema. Fuzzy
+            # match (~) means a typo in the query still finds the contact.
+            found = await repo.search_fulltext("Lovelase")
+            assert any(c.id == created.id for c in found)
+
+            archived = await repo.archive(created.id)
+            assert archived is not None
+            not_found_when_archived = await repo.search_fulltext("Lovelace")
+            assert all(c.id != created.id for c in not_found_when_archived)
+
             assert await repo.delete(created.id) is True
         finally:
             await driver.close()

@@ -17,3 +17,8 @@ class UserSettings(GraphNode):
     # as a single, user-configurable global value (not hardcoded, not
     # per-contact).
     stale_contact_days: int = Field(default=60, ge=1)
+
+    # Stage 3 (search & dedup): minimum score (0-100, rapidfuzz scale) for a
+    # contact pair to surface as a duplicate candidate. Same
+    # global-and-overridable pattern as stale_contact_days.
+    dedup_score_threshold: float = Field(default=85.0, ge=0, le=100)

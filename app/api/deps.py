@@ -13,6 +13,7 @@ from neo4j import AsyncDriver
 from app.handlers.contact_handler import ContactHandler
 from app.handlers.goal_handler import GoalHandler
 from app.handlers.link_handler import LinkHandler
+from app.handlers.search_handler import SearchHandler
 from app.handlers.settings_handler import SettingsHandler
 from app.repositories.contact_repository import ContactRepository
 from app.repositories.goal_repository import MonthlyGoalRepository, NetworkingGoalRepository
@@ -40,3 +41,8 @@ def get_goal_handler(request: Request) -> GoalHandler:
 
 def get_settings_handler(request: Request) -> SettingsHandler:
     return SettingsHandler(SettingsRepository(get_driver(request)))
+
+
+def get_search_handler(request: Request) -> SearchHandler:
+    driver = get_driver(request)
+    return SearchHandler(ContactRepository(driver), SettingsRepository(driver))

@@ -14,6 +14,7 @@ router = APIRouter(prefix="/settings", tags=["settings"])
 
 class SettingsUpdate(BaseModel):
     stale_contact_days: int | None = Field(default=None, ge=1)
+    dedup_score_threshold: float | None = Field(default=None, ge=0, le=100)
 
 
 @router.get("", response_model=UserSettings)

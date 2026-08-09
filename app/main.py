@@ -2,7 +2,7 @@
 
 Lifespan wiring (Neo4j driver + schema bootstrap + 1Password secret load)
 plus every domain router built so far (stage 2: contacts, dimension nodes,
-links/relationships, goals, settings).
+links/relationships, goals, settings; stage 3: search & dedup).
 """
 
 from __future__ import annotations
@@ -13,7 +13,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from loguru import logger
 
-from app.api import contacts, goals
+from app.api import contacts, goals, search
 from app.api import settings as settings_api
 from app.api.dimensions import all_dimension_routers
 from app.api.links import actions_router, contact_links_router, misc_router
@@ -48,6 +48,7 @@ app.include_router(contact_links_router)
 app.include_router(actions_router)
 app.include_router(goals.router)
 app.include_router(settings_api.router)
+app.include_router(search.router)
 app.include_router(misc_router)
 for dimension_router in all_dimension_routers:
     app.include_router(dimension_router)
