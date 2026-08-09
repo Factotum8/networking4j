@@ -175,7 +175,7 @@ class LinkRepository(Repository):
         backs the CLI "birthdays" scenario (item 5). Compares month/day only
         (birth *year* doesn't matter for "is it coming up")."""
         query = """
-        CALL {
+        CALL () {
             MATCH (c:Contact) WHERE c.birthday IS NOT NULL
             RETURN c.name AS name, 'contact' AS kind, c.birthday AS birthday,
                    elementId(c) AS contact_id, null AS relative_id
