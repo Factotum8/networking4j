@@ -14,6 +14,7 @@ from app.handlers.contact_handler import ContactHandler
 from app.handlers.goal_handler import GoalHandler
 from app.handlers.import_export_handler import ImportExportHandler
 from app.handlers.link_handler import LinkHandler
+from app.handlers.reminder_handler import ReminderHandler
 from app.handlers.search_handler import SearchHandler
 from app.handlers.settings_handler import SettingsHandler
 from app.models.dimensions import Company, Interest, Tag
@@ -49,6 +50,13 @@ def get_settings_handler(request: Request) -> SettingsHandler:
 def get_search_handler(request: Request) -> SearchHandler:
     driver = get_driver(request)
     return SearchHandler(ContactRepository(driver), SettingsRepository(driver))
+
+
+def get_reminder_handler(request: Request) -> ReminderHandler:
+    driver = get_driver(request)
+    return ReminderHandler(
+        ContactRepository(driver), LinkRepository(driver), SettingsRepository(driver)
+    )
 
 
 def get_import_export_handler(request: Request) -> ImportExportHandler:

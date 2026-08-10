@@ -39,5 +39,12 @@ class Settings(BaseSettings):
     # --- Networking defaults (overridable per-user via the Settings screen later) ---
     stale_contact_days_default: int = Field(default=60)
 
+    # --- Stage 5: reminders (APScheduler) ---
+    # When the daily digest job fires, local server time. No UI to change
+    # this yet (stage 6 is the Settings screen) — an env var is enough for
+    # a single-user app in the meantime.
+    reminder_digest_hour: int = Field(default=8, ge=0, le=23)
+    reminder_digest_minute: int = Field(default=0, ge=0, le=59)
+
 
 settings = Settings()

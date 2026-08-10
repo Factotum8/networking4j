@@ -1,9 +1,10 @@
 """FastAPI application entry point.
 
-Lifespan wiring (Neo4j driver + schema bootstrap + 1Password secret load)
-plus every domain router built so far (stage 2: contacts, dimension nodes,
-links/relationships, goals, settings; stage 3: search & dedup; stage 4:
-CSV/Excel/vCard import & export).
+Lifespan wiring (Neo4j driver + schema bootstrap + 1Password secret load +
+stage 5's APScheduler reminder job) plus every domain router built so far
+(stage 2: contacts, dimension nodes, links/relationships, goals, settings;
+stage 3: search & dedup; stage 4: CSV/Excel/vCard import & export; stage 5:
+reminders digest).
 """
 
 from __future__ import annotations
@@ -14,13 +15,14 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from loguru import logger
 
-from app.api import contacts, goals, import_export, search
+from app.api import contacts, goals, import_export, reminders, search
 from app.api import settings as settings_api
 from app.api.dimensions import all_dimension_routers
 from app.api.links import actions_router, contact_links_router, misc_router
 from app.config import settings
 from app.db import create_driver, ensure_schema
 from app.logging_config import configure_logging
+from app.services.scheduler import start_scheduler
 from app.services.secrets import load_llm_api_keys
 
 
@@ -35,9 +37,12 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 
     app.state.llm_api_keys = await load_llm_api_keys()
 
+    scheduler = start_scheduler(driver)
+
     try:
         yield
     finally:
+        scheduler.shutdown(wait=False)
         await driver.close()
         logger.info("Neo4j driver closed, shutting down")
 
@@ -51,6 +56,7 @@ app.include_router(goals.router)
 app.include_router(settings_api.router)
 app.include_router(search.router)
 app.include_router(import_export.router)
+app.include_router(reminders.router)
 app.include_router(misc_router)
 for dimension_router in all_dimension_routers:
     app.include_router(dimension_router)
