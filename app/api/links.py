@@ -110,6 +110,29 @@ async def list_relatives(
     return await handler.list_relatives(contact_id)
 
 
+@contact_links_router.get("/actions", response_model=list[Action])
+async def list_actions(
+    contact_id: str, handler: LinkHandler = Depends(get_link_handler)
+) -> list[Action]:
+    """This contact's full action history — see `/actions/due` (below) for
+    the cross-contact, due-only view the reminders job uses."""
+    return await handler.list_actions(contact_id)
+
+
+@contact_links_router.get("/knows")
+async def list_knows(
+    contact_id: str, handler: LinkHandler = Depends(get_link_handler)
+) -> list[dict]:
+    return await handler.list_knows(contact_id)
+
+
+@contact_links_router.get("/links")
+async def list_dimension_links(
+    contact_id: str, handler: LinkHandler = Depends(get_link_handler)
+) -> list[dict]:
+    return await handler.list_dimension_links(contact_id)
+
+
 # --- Cross-contact views (not scoped to a single contact_id) ---
 
 actions_router = APIRouter(prefix="/actions", tags=["actions"])

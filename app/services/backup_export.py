@@ -127,24 +127,34 @@ async def build_backup(driver: AsyncDriver) -> GraphBackup:
     )
 
 
-async def main() -> None:
-    configure_logging()
-    BACKUPS_DIR.mkdir(exist_ok=True)
-    driver = create_driver()
-    try:
-        backup = await build_backup(driver)
-    finally:
-        await driver.close()
-
+def write_backup_files(backup: GraphBackup, backups_dir: Path = BACKUPS_DIR) -> tuple[Path, Path]:
+    """Write a already-built `GraphBackup` to disk (JSON + contacts CSV) and
+    return the two paths. Split out from `main()` so stage 6's "run backup
+    now" UI button can reuse it against the app's already-open driver
+    instead of going through `main()`'s own `create_driver()`/close cycle."""
+    backups_dir.mkdir(exist_ok=True)
     timestamp = backup.exported_at.strftime("%Y%m%dT%H%M%SZ")
-    json_path = BACKUPS_DIR / f"backup_{timestamp}.json"
-    csv_path = BACKUPS_DIR / f"contacts_{timestamp}.csv"
+    json_path = backups_dir / f"backup_{timestamp}.json"
+    csv_path = backups_dir / f"contacts_{timestamp}.csv"
 
     json_path.write_text(backup.model_dump_json(indent=2), encoding="utf-8")
     logger.info("Wrote full-graph JSON backup to {}", json_path)
 
     csv_path.write_bytes(contacts_to_csv(backup.contacts))
     logger.info("Wrote contacts CSV backup to {}", csv_path)
+
+    return json_path, csv_path
+
+
+async def main() -> None:
+    configure_logging()
+    driver = create_driver()
+    try:
+        backup = await build_backup(driver)
+    finally:
+        await driver.close()
+
+    write_backup_files(backup)
 
 
 if __name__ == "__main__":

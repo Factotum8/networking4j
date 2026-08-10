@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from datetime import date
+from typing import Any
 
 from loguru import logger
 
@@ -61,6 +62,9 @@ class LinkHandler:
     async def list_due_actions(self, *, before: date, include_completed: bool = False):
         return await self._repo.list_due_actions(before=before, include_completed=include_completed)
 
+    async def list_actions(self, contact_id: str) -> list[Action]:
+        return await self._repo.list_actions(contact_id)
+
     async def complete_action(self, action_id: str) -> Action:
         completed = await self._repo.complete_action(action_id)
         if completed is None:
@@ -76,6 +80,12 @@ class LinkHandler:
 
     async def list_relatives(self, contact_id: str) -> list[Relative]:
         return await self._repo.list_relatives(contact_id)
+
+    async def list_knows(self, contact_id: str) -> list[dict[str, Any]]:
+        return await self._repo.list_knows(contact_id)
+
+    async def list_dimension_links(self, contact_id: str) -> list[dict[str, Any]]:
+        return await self._repo.list_dimension_links(contact_id)
 
     async def upcoming_birthdays(self, *, within_days: int = 30):
         birthdays = await self._repo.upcoming_birthdays(within_days=within_days)

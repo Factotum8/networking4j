@@ -11,6 +11,7 @@ from datetime import UTC, date, datetime
 from typing import Any
 
 from app.models.action import Action
+from app.models.contact import Contact
 from app.models.enums import DimensionLinkType
 from app.models.interaction import Interaction
 from app.models.relationships import Knows
@@ -138,6 +139,19 @@ class LinkRepository(Repository):
             for r in records
         ]
 
+    async def list_actions(self, contact_id: str) -> list[Action]:
+        """This contact's full action history (due and completed) — backs
+        the stage-6 contact detail page. `list_due_actions` is the
+        cross-contact, due-only view the reminders job/dashboard need;
+        this is the per-contact, everything view."""
+        query = (
+            "MATCH (c:Contact)-[:NEXT_ACTION]->(a:Action) "
+            "WHERE elementId(c) = $contact_id "
+            "RETURN elementId(a) AS id, a {.*} AS props ORDER BY a.due_date"
+        )
+        records = await self._run(query, contact_id=contact_id)
+        return [Action.model_validate({**r["props"], "id": r["id"]}) for r in records]
+
     async def complete_action(self, action_id: str) -> Action | None:
         query = (
             "MATCH (a:Action) WHERE elementId(a) = $id "
@@ -169,6 +183,46 @@ class LinkRepository(Repository):
         )
         records = await self._run(query, contact_id=contact_id)
         return [Relative.model_validate({**r["props"], "id": r["id"]}) for r in records]
+
+    # --- Per-contact "what is this contact linked to" views (stage 6: contact detail page) ---
+
+    async def list_knows(self, contact_id: str) -> list[dict[str, Any]]:
+        """Outgoing KNOWS edges from this contact, each paired with the
+        contact on the other end — backs the detail page's "who they know"
+        section."""
+        query = (
+            "MATCH (a:Contact)-[r:KNOWS]->(b:Contact) "
+            "WHERE elementId(a) = $contact_id "
+            "RETURN elementId(b) AS id, b {.*} AS props, r {.*} AS knows_props"
+        )
+        records = await self._run(query, contact_id=contact_id)
+        return [
+            {
+                "contact": Contact.model_validate({**r["props"], "id": r["id"]}),
+                "knows": Knows.model_validate(r["knows_props"]),
+            }
+            for r in records
+        ]
+
+    async def list_dimension_links(self, contact_id: str) -> list[dict[str, Any]]:
+        """Every dimension node (Company/Event/Community/Project/Interest/
+        Tag) this contact is linked to, generically — the single-contact
+        counterpart to `list_all_dimension_links` (stage 4's backup)."""
+        query = (
+            "MATCH (c:Contact)-[rel]->(t) WHERE elementId(c) = $contact_id "
+            "AND type(rel) IN $rel_types "
+            "RETURN type(rel) AS rel_type, elementId(t) AS target_id, t.name AS target_name"
+        )
+        rel_types = [rel_type.value for rel_type in DimensionLinkType]
+        records = await self._run(query, contact_id=contact_id, rel_types=rel_types)
+        return [
+            {
+                "rel_type": DimensionLinkType(r["rel_type"]),
+                "target_id": r["target_id"],
+                "target_name": r["target_name"],
+            }
+            for r in records
+        ]
 
     # --- Cross-contact "list everything" views (stage 4: full-graph backup) ---
 

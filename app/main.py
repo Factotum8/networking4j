@@ -4,7 +4,8 @@ Lifespan wiring (Neo4j driver + schema bootstrap + 1Password secret load +
 stage 5's APScheduler reminder job) plus every domain router built so far
 (stage 2: contacts, dimension nodes, links/relationships, goals, settings;
 stage 3: search & dedup; stage 4: CSV/Excel/vCard import & export; stage 5:
-reminders digest).
+reminders digest; stage 6: NiceGUI dashboard + contact CRUD, mounted onto
+this same app — see app/ui/__init__.py).
 """
 
 from __future__ import annotations
@@ -24,6 +25,7 @@ from app.db import create_driver, ensure_schema
 from app.logging_config import configure_logging
 from app.services.scheduler import start_scheduler
 from app.services.secrets import load_llm_api_keys
+from app.ui import mount as mount_ui
 
 
 @asynccontextmanager
@@ -66,3 +68,11 @@ for dimension_router in all_dimension_routers:
 async def health() -> dict[str, str]:
     logger.debug("Health check requested")
     return {"status": "ok"}
+
+
+# Must be the LAST route registration in this module: `ui.run_with` mounts
+# NiceGUI as a `Mount("/", ...)` sub-app, and Starlette tries routes in
+# registration order — a mount at "/" matches every path, so anything
+# registered after it (like /health above) would never be reached. Learned
+# by curling /health and getting NiceGUI's 404 page back instead of our own.
+mount_ui(app)
