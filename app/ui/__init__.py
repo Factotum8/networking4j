@@ -1,6 +1,6 @@
-"""Stage 6: NiceGUI dashboard + contact CRUD, mounted into the same FastAPI
-process as the REST API (see `app/ui/deps.py` for why, and how pages reach
-the database).
+"""Stage 6: NiceGUI dashboard + contact CRUD; stage 7: the graph screen.
+Mounted into the same FastAPI process as the REST API (see `app/ui/deps.py`
+for why, and how pages reach the database).
 """
 
 from __future__ import annotations
@@ -25,6 +25,7 @@ def mount(app: FastAPI) -> None:
         contacts,
         dashboard,
         duplicates,
+        graph,
         import_export,
         settings,
     )

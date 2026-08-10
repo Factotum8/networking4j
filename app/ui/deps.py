@@ -25,6 +25,7 @@ from neo4j import AsyncDriver
 
 from app.handlers.contact_handler import ContactHandler
 from app.handlers.goal_handler import GoalHandler
+from app.handlers.graph_handler import GraphHandler
 from app.handlers.import_export_handler import ImportExportHandler
 from app.handlers.link_handler import LinkHandler
 from app.handlers.reminder_handler import ReminderHandler
@@ -35,6 +36,7 @@ from app.models.dimensions import Community, Company, Event, Interest, Project, 
 from app.models.enums import DimensionLinkType
 from app.repositories.contact_repository import ContactRepository
 from app.repositories.goal_repository import MonthlyGoalRepository, NetworkingGoalRepository
+from app.repositories.graph_repository import GraphRepository
 from app.repositories.link_repository import LinkRepository
 from app.repositories.named_node_repository import NamedNodeRepository
 from app.repositories.settings_repository import SettingsRepository
@@ -106,6 +108,10 @@ def get_import_export_handler() -> ImportExportHandler:
         NamedNodeRepository(driver, "Tag", Tag),
         NamedNodeRepository(driver, "Interest", Interest),
     )
+
+
+def get_graph_handler() -> GraphHandler:
+    return GraphHandler(GraphRepository(get_driver()))
 
 
 def get_dimension_repos() -> dict[DimensionLinkType, NamedNodeRepository]:

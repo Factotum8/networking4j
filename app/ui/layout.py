@@ -19,6 +19,7 @@ from nicegui import ui
 _NAV_LINKS: list[tuple[str, str]] = [
     ("Дашборд", "/"),
     ("Контакты", "/app/contacts"),
+    ("Граф", "/app/graph"),
     ("Дубликаты", "/app/duplicates"),
     ("Импорт/экспорт", "/app/import-export"),
     ("Настройки", "/app/settings"),
@@ -26,13 +27,16 @@ _NAV_LINKS: list[tuple[str, str]] = [
 
 
 @contextmanager
-def shell(title: str) -> Iterator[None]:
+def shell(title: str, *, wide: bool = False) -> Iterator[None]:
     """Wrap a page's content in the shared header/nav. Usage::
 
         @ui.page("/")
         async def dashboard_page() -> None:
             with layout.shell("Дашборд"):
                 ui.label("...")
+
+    :param wide: use the full viewport width instead of the usual
+        centered `max-w-5xl` column — the graph screen needs the room.
     """
     with ui.header().classes("items-center justify-between"):
         ui.label("networking4j").classes("text-lg font-bold")
@@ -40,5 +44,6 @@ def shell(title: str) -> Iterator[None]:
             for label, path in _NAV_LINKS:
                 ui.link(label, path).classes("text-white")
         ui.label(title).classes("text-sm opacity-75")
-    with ui.column().classes("w-full max-w-5xl mx-auto p-4 gap-4"):
+    container_classes = "w-full p-4 gap-4" if wide else "w-full max-w-5xl mx-auto p-4 gap-4"
+    with ui.column().classes(container_classes):
         yield

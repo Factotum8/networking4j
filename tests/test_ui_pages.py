@@ -1,16 +1,17 @@
-"""Integration test: stage-6 NiceGUI pages against a real Neo4j.
+"""Integration test: NiceGUI pages (stages 6-7) against a real Neo4j.
 
 `@ui.page` functions run server-side on the very first GET — the response
 already embeds the fully-built element tree (confirmed by hand: curling a
 page mid-development, before websocket even connects, showed real contact
 names baked into the HTML) — so a plain HTTP GET through the real app
 lifespan exercises the actual handler/DB calls each page makes, not just
-routing. The interactive parts (buttons, dialogs, uploads) were verified
-by hand against the live docker-compose stack for every page in this stage
-(dashboard, contacts list/detail/CRUD, settings, duplicates, import/export)
-— this test is the automated regression net for "does the page still build
-without blowing up and does it still show real data", not a replacement
-for that manual pass.
+routing. The interactive parts (buttons, dialogs, uploads, graph
+filters/clicks/shortest-path) were verified by hand against the live
+docker-compose stack for every page in both stages (stage 6: dashboard,
+contacts list/detail/CRUD, settings, duplicates, import/export; stage 7:
+the graph screen) — this test is the automated regression net for "does
+the page still build without blowing up and does it still show real
+data", not a replacement for that manual pass.
 
 Requires Docker; skipped the same way test_db_schema.py is when it isn't
 available.
@@ -24,6 +25,7 @@ from neo4j import AsyncGraphDatabase
 
 from app.db import ensure_schema
 from app.models.contact import Contact
+from app.models.enums import Circle
 from app.repositories.contact_repository import ContactRepository
 
 try:
@@ -50,7 +52,9 @@ async def test_ui_pages_render_against_real_neo4j(monkeypatch: pytest.MonkeyPatc
         )
         try:
             await ensure_schema(driver)
-            seeded = await ContactRepository(driver).create(Contact(name="UI Smoke Test Contact"))
+            seeded = await ContactRepository(driver).create(
+                Contact(name="UI Smoke Test Contact", circle=Circle.SUPPORT_CIRCLE)
+            )
             assert seeded.id is not None
 
             import app.main as main_module
@@ -70,6 +74,7 @@ async def test_ui_pages_render_against_real_neo4j(monkeypatch: pytest.MonkeyPatc
                     "/app/duplicates",
                     "/app/import-export",
                     "/app/settings",
+                    "/app/graph",
                 ):
                     response = await client.get(path)
                     assert response.status_code == 200, path
@@ -77,6 +82,9 @@ async def test_ui_pages_render_against_real_neo4j(monkeypatch: pytest.MonkeyPatc
                 detail_response = await client.get(f"/app/contacts/{seeded.id}")
                 assert detail_response.status_code == 200
                 assert "UI Smoke Test Contact" in detail_response.text
+
+                graph_response = await client.get("/app/graph")
+                assert "UI Smoke Test Contact" in graph_response.text
         finally:
             await driver.close()
     finally:
