@@ -10,6 +10,8 @@ from __future__ import annotations
 from fastapi import Request
 from neo4j import AsyncDriver
 
+from app.config import settings
+from app.handlers.ai_handler import AiHandler
 from app.handlers.contact_handler import ContactHandler
 from app.handlers.goal_handler import GoalHandler
 from app.handlers.import_export_handler import ImportExportHandler
@@ -18,6 +20,7 @@ from app.handlers.reminder_handler import ReminderHandler
 from app.handlers.search_handler import SearchHandler
 from app.handlers.settings_handler import SettingsHandler
 from app.models.dimensions import Company, Interest, Tag
+from app.providers.factory import build_llm_provider
 from app.repositories.contact_repository import ContactRepository
 from app.repositories.goal_repository import MonthlyGoalRepository, NetworkingGoalRepository
 from app.repositories.link_repository import LinkRepository
@@ -56,6 +59,17 @@ def get_reminder_handler(request: Request) -> ReminderHandler:
     driver = get_driver(request)
     return ReminderHandler(
         ContactRepository(driver), LinkRepository(driver), SettingsRepository(driver)
+    )
+
+
+def get_ai_handler(request: Request) -> AiHandler:
+    """Raises `LLMProviderUnavailableError` (-> 500, see app/main.py) if the
+    configured provider's key never resolved from 1Password — no fallback
+    to the other provider, per the user's stage-8 decision."""
+    driver = get_driver(request)
+    llm = build_llm_provider(settings, request.app.state.llm_api_keys)
+    return AiHandler(
+        llm, ContactRepository(driver), LinkRepository(driver), SettingsRepository(driver)
     )
 
 

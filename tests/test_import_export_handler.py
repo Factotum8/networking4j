@@ -48,7 +48,7 @@ async def test_import_export_round_trip_against_real_neo4j() -> None:
 
             csv_bytes = (
                 b"name,phone,company,tags\n"
-                b"Ada Lovelace,+1-555-0100,Acme Inc,\"vip, mathematician\"\n"
+                b'Ada Lovelace,+1-555-0100,Acme Inc,"vip, mathematician"\n'
                 b",5\n"  # row with no name — should error, not abort the batch
             )
             summary = await handler.import_csv("import.csv", csv_bytes)

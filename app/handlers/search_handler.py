@@ -29,6 +29,7 @@ class _ContactSource(Protocol):
 class _SettingsSource(Protocol):
     async def get(self) -> UserSettings: ...
 
+
 # rapidfuzz's 0-100 scale. Below this, two names are treated as unrelated
 # rather than "maybe the same person, slightly misspelled".
 _NAME_MATCH_FLOOR = 80.0

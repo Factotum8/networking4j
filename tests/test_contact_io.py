@@ -14,7 +14,7 @@ def test_parse_csv_valid_rows_with_dimension_links() -> None:
     csv_bytes = (
         b"name,phone,email,birthday,contact_type,circle,dangerous,company,tags\n"
         b"Ada Lovelace,+1-555-0100,ada@example.com,1815-12-10,connector,support_circle,3,"
-        b"Acme Inc,\"vip, mathematician\"\n"
+        b'Acme Inc,"vip, mathematician"\n'
     )
 
     rows, errors = parse_csv("import.csv", csv_bytes)

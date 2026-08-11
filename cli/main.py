@@ -2,8 +2,9 @@
 
 Thin HTTP client over the main app's API — no direct DB/LLM access from
 here (see item 5 in networking-app-ai-prompt.md). The ``/ai/*`` endpoints
-this calls are built in stage 8 of the plan; until then every command below
-will fail to connect, which is expected at this point in the build.
+(stage 8, ``app/api/ai.py``) always respond with a JSON body carrying a
+``message`` key holding the LLM-generated text; every command below just
+prints that.
 
 Run with: ``pixi run python -m cli.main --help``
 """
@@ -31,7 +32,7 @@ def add_contact(text: str) -> None:
     with _client() as client:
         response = client.post("/ai/contacts", json={"text": text})
         response.raise_for_status()
-        typer.echo(response.json())
+        typer.echo(response.json()["message"])
 
 
 @app.command("stale")
@@ -41,7 +42,7 @@ def stale() -> None:
     with _client() as client:
         response = client.get("/ai/stale-contacts")
         response.raise_for_status()
-        typer.echo(response.json())
+        typer.echo(response.json()["message"])
 
 
 @app.command("last-meeting")
@@ -51,7 +52,7 @@ def last_meeting(name: str) -> None:
     with _client() as client:
         response = client.get("/ai/last-meeting", params={"name": name})
         response.raise_for_status()
-        typer.echo(response.json())
+        typer.echo(response.json()["message"])
 
 
 @app.command("birthdays")
@@ -61,7 +62,7 @@ def birthdays() -> None:
     with _client() as client:
         response = client.get("/ai/birthdays")
         response.raise_for_status()
-        typer.echo(response.json())
+        typer.echo(response.json()["message"])
 
 
 @app.command("facts")
@@ -71,7 +72,7 @@ def facts(name: str) -> None:
     with _client() as client:
         response = client.get("/ai/facts", params={"name": name})
         response.raise_for_status()
-        typer.echo(response.json())
+        typer.echo(response.json()["message"])
 
 
 if __name__ == "__main__":

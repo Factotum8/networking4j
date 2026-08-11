@@ -334,9 +334,7 @@ async def _render_relatives(contact_id: str) -> None:
                     ui.label("Пока нет данных").classes("text-sm opacity-60")
                 for relative in relatives:
                     meta = " · ".join(
-                        p
-                        for p in [relative.relation_type or "", str(relative.birthday or "")]
-                        if p
+                        p for p in [relative.relation_type or "", str(relative.birthday or "")] if p
                     )
                     ui.label(f"{relative.name}" + (f" ({meta})" if meta else ""))
 

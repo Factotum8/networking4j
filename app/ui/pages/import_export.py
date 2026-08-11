@@ -30,9 +30,7 @@ def _render_import_section() -> None:
             with result_area:
                 ui.label(f"Создано контактов: {summary.created}").classes("text-sm")
                 if summary.errors:
-                    ui.label(f"Ошибок: {len(summary.errors)}").classes(
-                        "text-sm text-orange-600"
-                    )
+                    ui.label(f"Ошибок: {len(summary.errors)}").classes("text-sm text-orange-600")
                     for error in summary.errors:
                         ui.label(f"Строка {error.row}: {error.message}").classes(
                             "text-xs opacity-60"

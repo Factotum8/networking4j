@@ -102,7 +102,8 @@ async def dashboard_page() -> None:
             handler = deps.get_contact_handler()
             all_active = await handler.list_contacts()
             recent = sorted(
-                all_active, key=lambda c: c.created_at or datetime.min.replace(tzinfo=UTC),
+                all_active,
+                key=lambda c: c.created_at or datetime.min.replace(tzinfo=UTC),
                 reverse=True,
             )[:_RECENT_COUNT]
             if not recent:

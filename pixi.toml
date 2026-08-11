@@ -26,6 +26,8 @@ loguru = ">=0.7.3, <0.8"
 httpx = ">=0.28.1, <0.29"
 typer = ">=0.27.1, <0.28"
 onepassword-sdk = ">=0.4.1, <0.5"
+anthropic = ">=0.121.0, <0.122"
+openai = ">=2.53.0, <3"
 
 [feature.dev.pypi-dependencies]
 pytest = "*"

@@ -9,6 +9,8 @@ vault, item names).
 
 from __future__ import annotations
 
+from typing import Literal
+
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -45,6 +47,14 @@ class Settings(BaseSettings):
     # a single-user app in the meantime.
     reminder_digest_hour: int = Field(default=8, ge=0, le=23)
     reminder_digest_minute: int = Field(default=0, ge=0, le=59)
+
+    # --- Stage 8: LLM provider (CLI/AI integration) ---
+    # Which provider backs every `/ai/*` endpoint — see
+    # app.providers.factory. No runtime fallback if the selected provider's
+    # key doesn't resolve from 1Password (explicit user decision).
+    llm_provider: Literal["claude", "codex"] = Field(default="claude")
+    llm_model_claude: str = Field(default="claude-sonnet-4-5-20250929")
+    llm_model_codex: str = Field(default="gpt-5-codex")
 
 
 settings = Settings()

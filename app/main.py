@@ -13,16 +13,19 @@ from __future__ import annotations
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
+from fastapi.responses import JSONResponse
 from loguru import logger
 
-from app.api import contacts, goals, import_export, reminders, search
+from app.api import ai, contacts, goals, import_export, reminders, search
 from app.api import settings as settings_api
 from app.api.dimensions import all_dimension_routers
 from app.api.links import actions_router, contact_links_router, misc_router
 from app.config import settings
 from app.db import create_driver, ensure_schema
 from app.logging_config import configure_logging
+from app.providers.base import LLMProviderError
+from app.providers.factory import LLMProviderUnavailableError
 from app.services.scheduler import start_scheduler
 from app.services.secrets import load_llm_api_keys
 from app.ui import mount as mount_ui
@@ -59,6 +62,7 @@ app.include_router(settings_api.router)
 app.include_router(search.router)
 app.include_router(import_export.router)
 app.include_router(reminders.router)
+app.include_router(ai.router)
 app.include_router(misc_router)
 for dimension_router in all_dimension_routers:
     app.include_router(dimension_router)
@@ -68,6 +72,24 @@ for dimension_router in all_dimension_routers:
 async def health() -> dict[str, str]:
     logger.debug("Health check requested")
     return {"status": "ok"}
+
+
+# Stage 8: both raised from app.api.deps.get_ai_handler (missing 1Password
+# key) and from within ClaudeProvider/CodexProvider (the API call itself
+# failing) — handled globally rather than per-route in app/api/ai.py since
+# every /ai/* endpoint needs the same mapping.
+@app.exception_handler(LLMProviderUnavailableError)
+async def llm_provider_unavailable_handler(
+    request: Request, exc: LLMProviderUnavailableError
+) -> JSONResponse:
+    logger.error("LLM provider unavailable: {}", exc)
+    return JSONResponse(status_code=500, content={"detail": str(exc)})
+
+
+@app.exception_handler(LLMProviderError)
+async def llm_provider_error_handler(request: Request, exc: LLMProviderError) -> JSONResponse:
+    logger.error("LLM provider call failed: {}", exc)
+    return JSONResponse(status_code=502, content={"detail": str(exc)})
 
 
 # Must be the LAST route registration in this module: `ui.run_with` mounts

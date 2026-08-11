@@ -42,6 +42,7 @@ _CONTACT_COLUMNS = (
     "difficult",
 )
 
+
 def _clean(value: Any) -> str | None:
     if value is None or (isinstance(value, float) and pd.isna(value)):
         return None

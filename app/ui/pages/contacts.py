@@ -40,21 +40,17 @@ async def contacts_page() -> None:
                 contacts = await handler.list_contacts(**filters)
                 with results:
                     if not contacts:
-                        ui.label("Нет контактов по заданным фильтрам").classes(
-                            "text-sm opacity-60"
-                        )
+                        ui.label("Нет контактов по заданным фильтрам").classes("text-sm opacity-60")
                     for contact in contacts:
                         row_classes = "items-center justify-between w-full border-b py-1"
                         with ui.row().classes(row_classes), ui.column().classes("gap-0"):
-                            ui.link(
-                                contact.name, f"/app/contacts/{contact.id}"
-                            ).classes("text-base")
+                            ui.link(contact.name, f"/app/contacts/{contact.id}").classes(
+                                "text-base"
+                            )
                             meta = " · ".join(
                                 p
                                 for p in [
-                                    CIRCLE_LABELS.get(contact.circle, "")
-                                    if contact.circle
-                                    else "",
+                                    CIRCLE_LABELS.get(contact.circle, "") if contact.circle else "",
                                     CONTACT_TYPE_LABELS.get(contact.contact_type, "")
                                     if contact.contact_type
                                     else "",
@@ -64,7 +60,7 @@ async def contacts_page() -> None:
                                 if p
                             )
                             if meta:
-                                    ui.label(meta).classes("text-xs opacity-60")
+                                ui.label(meta).classes("text-xs opacity-60")
 
             circle_filter.on_value_change(refresh)
             type_filter.on_value_change(refresh)

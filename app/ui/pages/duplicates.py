@@ -50,9 +50,9 @@ def _candidate_row(
     a, b = candidate.contact_a, candidate.contact_b
     with ui.card().classes("w-full"):
         ui.label(f"{a.name} ↔ {b.name}").classes("text-base font-bold")
-        ui.label(
-            f"Совпадение: {candidate.score:.0f} ({', '.join(candidate.matched_on)})"
-        ).classes("text-xs opacity-60")
+        ui.label(f"Совпадение: {candidate.score:.0f} ({', '.join(candidate.matched_on)})").classes(
+            "text-xs opacity-60"
+        )
         with ui.row().classes("gap-2"):
             for contact in (a, b):
 
