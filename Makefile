@@ -1,4 +1,4 @@
-.PHONY: install run run-cli test lint lint-fix format docker-up docker-down dump backup clean
+.PHONY: install run run-cli test lint lint-fix format docker-up docker-down deploy-up deploy-down dump backup clean
 
 install:
 	pixi install
@@ -28,6 +28,15 @@ docker-up:
 
 docker-down:
 	docker compose down
+
+# Stage 9/10: single-VPS deploy — brings up neo4j AND the containerized app
+# (the "prod" profile, see docker-compose.yml). Separate from docker-up/down
+# above so local dev (uvicorn --reload via `make run`) is unaffected.
+deploy-up:
+	docker compose --profile prod up -d --build
+
+deploy-down:
+	docker compose --profile prod down
 
 # Community Edition has no online backup — dump on a stopped instance.
 # Intended to be invoked by cron against the neo4j container.
