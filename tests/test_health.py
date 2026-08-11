@@ -12,15 +12,9 @@ from unittest.mock import AsyncMock
 
 from fastapi.testclient import TestClient
 
-from app.services.secrets import LLMApiKeys
-
 
 def test_health(monkeypatch) -> None:
     monkeypatch.setattr("app.main.ensure_schema", AsyncMock(return_value=None))
-    monkeypatch.setattr(
-        "app.main.load_llm_api_keys",
-        AsyncMock(return_value=LLMApiKeys(claude_api_key=None, codex_api_key=None)),
-    )
 
     from app.main import app
 

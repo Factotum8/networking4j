@@ -1,10 +1,13 @@
 """Application configuration.
 
 All configuration is read from environment variables (see ``.env.example``).
-Nothing here holds an actual secret value — API keys for Claude/Codex are
-fetched at runtime from 1Password (see ``app.services.secrets``); this module
-only holds the *coordinates* needed to look them up (service account token,
-vault, item names).
+The Claude/Codex API keys are **not** resolved by this app at all: `.env`
+holds `op://vault/item/field` references, and the process is launched via
+`op run --env-file=.env -- ...` (1Password CLI), which substitutes the real
+secret values into the environment *before* this module ever reads them —
+so `claude_api_key`/`codex_api_key` below just look like any other setting.
+See DEPLOY.md for why (Individual/Families 1Password plans have no Service
+Accounts, so the Stage 8 SDK-based approach only works on a Business plan).
 """
 
 from __future__ import annotations
@@ -30,13 +33,11 @@ class Settings(BaseSettings):
     neo4j_user: str = Field(default="neo4j")
     neo4j_password: str = Field(default="neo4j")
 
-    # --- 1Password (Service Account) — see item 5 in networking-app-ai-prompt.md ---
-    op_service_account_token: str | None = Field(default=None)
-    op_vault: str = Field(default="networking4j")
-    op_item_claude_api_key: str = Field(default="claude-api-key")
-    op_item_codex_api_key: str = Field(default="codex-api-key")
-    op_field_claude_api_key: str = Field(default="credential")
-    op_field_codex_api_key: str = Field(default="credential")
+    # --- LLM provider API keys ---
+    # Resolved from 1Password *before* this process starts (`op run
+    # --env-file=.env -- ...`), not by this app — see the module docstring.
+    claude_api_key: str | None = Field(default=None)
+    codex_api_key: str | None = Field(default=None)
 
     # --- Networking defaults (overridable per-user via the Settings screen later) ---
     stale_contact_days_default: int = Field(default=60)

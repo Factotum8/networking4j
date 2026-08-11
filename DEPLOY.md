@@ -29,10 +29,14 @@ Edit `.env`:
 - `NEO4J_PASSWORD` — set a real password. Neo4j 5 refuses to start if this
   equals the default username (`neo4j`) — see the stage-2 note in
   `app/db.py`'s history if that error ever resurfaces.
-- `OP_SERVICE_ACCOUNT_TOKEN` — leave blank until a 1Password Service Account
-  exists (see the project's own notes on this — it's a separate, currently
-  blocked step). Everything except the `/ai/*` endpoints (stage 8) works
-  fine without it; those return a 500 with a clear message instead.
+- `CLAUDE_API_KEY` / `CODEX_API_KEY` — leave as the literal `op://...`
+  placeholders from `.env.example` for now. Resolving them for real requires
+  either the 1Password CLI signed in on this VPS (no desktop app here, so
+  that's an interactive `op signin` per session — not solved yet, deferred
+  on purpose) or a 1Password Service Account (needs a Business/Teams plan;
+  the account in use is Individual, so that's off the table too). Everything
+  except the `/ai/*` endpoints (stage 8) works fine with the placeholders
+  left unresolved; those return a 500 with a clear message instead.
 - `APP_PORT` — which host port the app listens on (default `8000`).
 - Leave `NEO4J_URI` alone — `docker-compose.yml`'s `app` service overrides it
   to point at the `neo4j` container by service name regardless of what's in

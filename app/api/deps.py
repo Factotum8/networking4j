@@ -64,10 +64,10 @@ def get_reminder_handler(request: Request) -> ReminderHandler:
 
 def get_ai_handler(request: Request) -> AiHandler:
     """Raises `LLMProviderUnavailableError` (-> 500, see app/main.py) if the
-    configured provider's key never resolved from 1Password — no fallback
-    to the other provider, per the user's stage-8 decision."""
+    configured provider's API key is missing — no fallback to the other
+    provider, per the user's stage-8 decision."""
     driver = get_driver(request)
-    llm = build_llm_provider(settings, request.app.state.llm_api_keys)
+    llm = build_llm_provider(settings)
     return AiHandler(
         llm, ContactRepository(driver), LinkRepository(driver), SettingsRepository(driver)
     )

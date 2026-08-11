@@ -1,9 +1,9 @@
 """HTTP-layer tests for `/ai/*` — wiring and the two global exception
 handlers registered in app/main.py (LLMProviderUnavailableError -> 500,
 AiContactNotFoundError -> 404). Mirrors test_health.py's approach: mock out
-lifespan startup, no real Neo4j/1Password/LLM involved. `AiHandler`'s own
-logic is covered against fakes in test_ai_handler.py; this only checks that
-the router calls it and maps its exceptions correctly.
+lifespan startup, no real Neo4j/LLM involved. `AiHandler`'s own logic is
+covered against fakes in test_ai_handler.py; this only checks that the
+router calls it and maps its exceptions correctly.
 """
 
 from __future__ import annotations
@@ -17,16 +17,11 @@ from fastapi.testclient import TestClient
 
 from app.handlers.ai_handler import AiContactNotFoundError
 from app.providers.factory import LLMProviderUnavailableError
-from app.services.secrets import LLMApiKeys
 
 
 @pytest.fixture
 def client(monkeypatch: pytest.MonkeyPatch) -> Iterator[TestClient]:
     monkeypatch.setattr("app.main.ensure_schema", AsyncMock(return_value=None))
-    monkeypatch.setattr(
-        "app.main.load_llm_api_keys",
-        AsyncMock(return_value=LLMApiKeys(claude_api_key=None, codex_api_key=None)),
-    )
     from app.main import app
 
     with TestClient(app) as test_client:

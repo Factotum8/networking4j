@@ -1,7 +1,7 @@
 """FastAPI application entry point.
 
-Lifespan wiring (Neo4j driver + schema bootstrap + 1Password secret load +
-stage 5's APScheduler reminder job) plus every domain router built so far
+Lifespan wiring (Neo4j driver + schema bootstrap + stage 5's APScheduler
+reminder job) plus every domain router built so far
 (stage 2: contacts, dimension nodes, links/relationships, goals, settings;
 stage 3: search & dedup; stage 4: CSV/Excel/vCard import & export; stage 5:
 reminders digest; stage 6: NiceGUI dashboard + contact CRUD, mounted onto
@@ -27,7 +27,6 @@ from app.logging_config import configure_logging
 from app.providers.base import LLMProviderError
 from app.providers.factory import LLMProviderUnavailableError
 from app.services.scheduler import start_scheduler
-from app.services.secrets import load_llm_api_keys
 from app.ui import mount as mount_ui
 
 
@@ -39,8 +38,6 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     driver = create_driver()
     await ensure_schema(driver)
     app.state.neo4j_driver = driver
-
-    app.state.llm_api_keys = await load_llm_api_keys()
 
     scheduler = start_scheduler(driver)
 
@@ -74,8 +71,8 @@ async def health() -> dict[str, str]:
     return {"status": "ok"}
 
 
-# Stage 8: both raised from app.api.deps.get_ai_handler (missing 1Password
-# key) and from within ClaudeProvider/CodexProvider (the API call itself
+# Stage 8: both raised from app.api.deps.get_ai_handler (missing API key)
+# and from within ClaudeProvider/CodexProvider (the API call itself
 # failing) — handled globally rather than per-route in app/api/ai.py since
 # every /ai/* endpoint needs the same mapping.
 @app.exception_handler(LLMProviderUnavailableError)

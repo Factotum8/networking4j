@@ -3,8 +3,13 @@
 install:
 	pixi install
 
+# `op run` resolves the `op://...` refs in .env into real env vars for this
+# process only (nothing touches disk) — requires the 1Password CLI signed in
+# and "Integrate with 1Password CLI" enabled in the desktop app. See
+# .env.example's comment on CLAUDE_API_KEY/CODEX_API_KEY for why (no
+# Service Account on an Individual/Families plan).
 run:
-	pixi run uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+	op run --env-file=.env -- pixi run uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 
 run-cli:
 	pixi run python -m cli.main $(ARGS)

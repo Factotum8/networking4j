@@ -79,7 +79,6 @@ environments:
       - pypi: https://files.pythonhosted.org/packages/e6/cf/1c3795866cefaac6e648d4e98c373cafd97810f6e317c307371007ab4abb/neo4j-6.2.0-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/b2/66/b8c19171fa2297079e4547f2cad46ba320151d61d48b1eef19f788b46c2d/nicegui-3.15.0-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/c7/99/461bd36dbdfac6c1c53efa370bd55a83227542d0d118f1677dbf1a3dacd5/numpy-2.5.2-cp314-cp314-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl
-      - pypi: https://files.pythonhosted.org/packages/df/06/989f5b40e802e11e37c44bc72faabcdd362dcba3392fbfc48be6da49e147/onepassword_sdk-0.4.1.tar.gz
       - pypi: https://files.pythonhosted.org/packages/78/0f/cc6afea3542a5142c5d8fc8211c5e059a8375105d004a41dfa2c7948dbb0/openai-2.53.0-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/76/3e/c0b690253f0b82d86e99949af13533363acfb5432ecb5d53dd5b3bce9c34/orjson-3.11.9-cp314-cp314-manylinux_2_17_x86_64.manylinux2014_x86_64.whl
       - pypi: https://files.pythonhosted.org/packages/63/34/ba1c580383c9eada3711951fef0795c80b829a078d72188184bcab9dd527/packaging-26.3-py3-none-any.whl
@@ -195,7 +194,6 @@ environments:
       - pypi: https://files.pythonhosted.org/packages/e6/cf/1c3795866cefaac6e648d4e98c373cafd97810f6e317c307371007ab4abb/neo4j-6.2.0-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/b2/66/b8c19171fa2297079e4547f2cad46ba320151d61d48b1eef19f788b46c2d/nicegui-3.15.0-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/c4/3b/ecd49dd90033cceb2704d88ca905d4d7d89b0e8c739608754ffd325fa820/numpy-2.5.2-cp314-cp314-manylinux_2_27_aarch64.manylinux_2_28_aarch64.whl
-      - pypi: https://files.pythonhosted.org/packages/df/06/989f5b40e802e11e37c44bc72faabcdd362dcba3392fbfc48be6da49e147/onepassword_sdk-0.4.1.tar.gz
       - pypi: https://files.pythonhosted.org/packages/78/0f/cc6afea3542a5142c5d8fc8211c5e059a8375105d004a41dfa2c7948dbb0/openai-2.53.0-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/5a/5a/07d8aa117211a8ed7630bda80c8c0b14d04e0f8dcf99bcf49656e4a710eb/orjson-3.11.9-cp314-cp314-manylinux_2_17_aarch64.manylinux2014_aarch64.whl
       - pypi: https://files.pythonhosted.org/packages/63/34/ba1c580383c9eada3711951fef0795c80b829a078d72188184bcab9dd527/packaging-26.3-py3-none-any.whl
@@ -307,7 +305,6 @@ environments:
       - pypi: https://files.pythonhosted.org/packages/e6/cf/1c3795866cefaac6e648d4e98c373cafd97810f6e317c307371007ab4abb/neo4j-6.2.0-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/b2/66/b8c19171fa2297079e4547f2cad46ba320151d61d48b1eef19f788b46c2d/nicegui-3.15.0-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/bf/64/0e215f2048dd11a55bb989ed41b3585ef57452404e638d703a211a3e4157/numpy-2.5.1-cp314-cp314-macosx_11_0_arm64.whl
-      - pypi: https://files.pythonhosted.org/packages/df/06/989f5b40e802e11e37c44bc72faabcdd362dcba3392fbfc48be6da49e147/onepassword_sdk-0.4.1.tar.gz
       - pypi: https://files.pythonhosted.org/packages/78/0f/cc6afea3542a5142c5d8fc8211c5e059a8375105d004a41dfa2c7948dbb0/openai-2.53.0-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/8e/eb/5da01e356015aee6ecfa1187ced87aef51364e306f5e695dd52719bf0e78/orjson-3.11.9-cp314-cp314-macosx_10_15_x86_64.macosx_11_0_arm64.macosx_10_15_universal2.whl
       - pypi: https://files.pythonhosted.org/packages/63/34/ba1c580383c9eada3711951fef0795c80b829a078d72188184bcab9dd527/packaging-26.3-py3-none-any.whl
@@ -1472,13 +1469,6 @@ packages:
   version: 2.5.2
   sha256: 318b9a4c845dbea06708a29c84ee429cc3065048db34cdb799047643492050ee
   requires_python: '>=3.12'
-- pypi: https://files.pythonhosted.org/packages/df/06/989f5b40e802e11e37c44bc72faabcdd362dcba3392fbfc48be6da49e147/onepassword_sdk-0.4.1.tar.gz
-  name: onepassword-sdk
-  version: 0.4.1
-  sha256: 4b9224208aa6e35e13bad8534e6521d3abf5ba166ea4efd370fcdc918c4a4d26
-  requires_dist:
-  - pydantic>=2.5
-  requires_python: '>=3.9'
 - pypi: https://files.pythonhosted.org/packages/78/0f/cc6afea3542a5142c5d8fc8211c5e059a8375105d004a41dfa2c7948dbb0/openai-2.53.0-py3-none-any.whl
   name: openai
   version: 2.53.0
