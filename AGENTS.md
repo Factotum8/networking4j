@@ -10,7 +10,6 @@ Related documents:
 A personal networking base with visual analysis of connections between people (a graph of contacts, companies, events, communities, projects, and interests). See the spec above for details.
 
 ## Technology stack
-
 ```
 FastAPI + neo4j async driver + Pydantic v2 (Cypher repositories)
 Neo4j Community in Docker (or Aura Free)
@@ -50,7 +49,7 @@ CLI integration: Claude API and Codex API (architecture — see open questions i
 ### Code review guidelines
 
 Please analyze the code and provide a review, including manual changes given in the merge request. Important notes that must be considered by the developer:
-за
+
 - Follow PEP 8.
 - Follow SOLID principles.
 - Follow the Zen of Python.

@@ -18,37 +18,40 @@ You are an AI developer agent. Your task is to design and implement an applicati
 
 ## Clarifications on the spec (question → user's answer)
 
-Below are the questions that have already been asked, along with the user's answers to them. **There is no need to ask about these items again.** Some answers have open loose ends — they are marked **⚠️ Still needs clarification**; these must be resolved with the user before moving on to the plan.
+Below are the questions that have already been asked, along with the user's final answers. **All items below are resolved — there is no need to ask about them again.**
 
 ### 1. The "FC SC SC" circles
-**Question:** what are the circles actually called, by what criteria does a contact fall into one circle or another, and how is this reflected in the UI/on the graph?
-**Answer:** Support Circle, Functional Circles, Success Circle. The user manually decides where to place a contact (manually, not automatically). On the graph — 3 concentric zones: core, middle layer, outer layer — similar to a target/bullseye.
-**⚠️ Still needs clarification:** "Support Circle" and "Success Circle" abbreviate the same way ("SC") — the code/UI should use full names rather than abbreviations to avoid confusion. Also, the explicit mapping "circle → target zone" (which of the three circles = core, which = middle layer, which = outer zone) has not been fixed — this needs to be clarified with the user before designing the graph model and UI.
+**Question:** what are the circles actually called, by what criteria does a contact fall into one circle or another, how is this reflected in the UI/on the graph, and which circle maps to which of the 3 concentric target zones?
+**Answer:** Support Circle, Functional Circles, Success Circle. The user manually decides which circle to place a contact in (manually, not automatically). On the graph — 3 concentric zones, like a target: **Support Circle = core (innermost)**, **Functional Circles = middle layer**, **Success Circle = outer zone**. Full names are used everywhere in code/UI (never the "SC" abbreviation, since Support Circle and Success Circle both abbreviate to it).
 
 ### 2. Contact types
-**Question:** the exact terms need to be checked against the source material; is this a fixed single-value enum, or can a contact have multiple types?
-**Answer:** a fixed enum, exactly one value per contact. Terms to check against the source material: connector, condenser, insider (private contact).
-**⚠️ Still needs clarification:** the original spec listed 4 types (connector, condenser, **bridge**, insider/private contact); in the answer "bridge" disappeared, and "condenser" is listed twice — this looks like a typo when typing the answer. Before implementation, confirm with the user the final, deduplicated list of types (does "bridge" belong in the final enum).
+**Question:** exact terms, and is "bridge" part of the final enum?
+**Answer:** a fixed enum, exactly one value per contact, **4 types**: connector, condenser, bridge, insider (private contact).
 
 ### 3. Contact criteria
 **Question:** is this an enum/tags? Can they be combined? Manual or calculated?
-**Answer:** three numeric attributes (dangerous, interesting, difficult), each on a scale of 1 to 10. These are not tags. Closed, no further clarification needed.
+**Answer:** three numeric attributes (dangerous, interesting, difficult), each on a scale of 1 to 10. These are not tags.
 
 ### 4. Networking goal and monthly goal
 **Question:** free text or metrics? A single overall goal, or a month-by-month history?
-**Answer:** free text; a history of goals by month is kept, with the ability to look at past periods.
-**⚠️ Still needs clarification:** the spec distinguishes between the "networking goal" (overall) and the "specific goal for the coming month" — the answer only describes the mechanics for the monthly goal. Clarify with the user: is this one and the same field (the overall goal is simply the current month) or two separate objects — a separate, unchanging overall goal plus a separate monthly history?
+**Answer:** free text. **Two separate objects**: a single, standalone overall "networking goal" (not tied to a month, edited in place) **plus** an independent month-by-month goal history (with the ability to look back at past periods).
 
 ### 5. CLI for connecting an AI agent
-**Question:** what scenarios does the CLI cover, which AI does it work through, is it a standalone utility or a built-in command?
-**Answer:** scenarios — add a contact via text, ask "who haven't I talked to in a while," request context from the last meeting, a contact's birthday and the birthdays of their relatives, important facts about a contact and their interests. Works through the Claude API and the Codex API.
-**⚠️ Still needs clarification:**
-- "Contact's relatives" and their birthdays — this is a new entity, absent from the graph model (the "Graph Model" section below). Clarify the structure: a separate `(:Relative)` node linked to `Contact`, or a set of properties on the contact itself?
-- "Important facts about a contact" — is this the same as the existing "notes" field, or a separate structured entity (a list of facts with dates/sources)?
-- The use of two LLM providers (Claude API and Codex API) is not reflected in the "Recommended stack" section — need to clarify the architecture with the user: direct calls to both SDKs, a single abstract interface over the providers, where and how API keys are stored, and whether the CLI runs as a separate process or as a command within the main application.
+**Question:** what scenarios does the CLI cover, which AI does it work through, is it a standalone utility or a built-in command; how are "relatives" and "important facts" modeled; what's the architecture for two LLM providers and where are API keys stored?
+**Answer:**
+- Scenarios: add a contact via text, ask "who haven't I talked to in a while," request context from the last meeting, a contact's birthday and the birthdays of their relatives, important facts about a contact and their interests.
+- **Relatives**: a separate `(:Relative {name, relation_type, birthday})` node linked to `Contact` (e.g. `(:Contact)-[:HAS_RELATIVE]->(:Relative)`) — not properties on the contact itself.
+- **Important facts about a contact**: **the same thing as the existing "notes" field** — no separate structured entity.
+- **LLM architecture**: a single abstract provider interface (`LLMProvider`) with `ClaudeProvider`/`CodexProvider` implementations behind it; the concrete provider is chosen via config.
+- **CLI shape**: a standalone utility (its own entry point/executable), calling the main application's API over HTTP — not a command baked into the main app process.
+- **API key storage**: **1Password integration** — specifically a **1Password Service Account + the official 1Password SDK**. The app fetches the Claude API / Codex API keys from the vault via the SDK at startup, using a service-account token; no desktop app dependency, works in Docker/production.
 
-### 6. Other
-Also clarify any other spec items you consider insufficiently defined for designing the data schema, UI, or logic (for example: what counts as "haven't been in touch for a while" — a specific threshold in days, user-configurable or not; what counts as "photos" — one or several per contact; the backup format, etc.).
+### 6. Other open items
+**Question:** threshold for "haven't been in touch for a while"; how many photos per contact; backup format.
+**Answer:**
+- **"Haven't been in touch" threshold**: a single global value, **user-configurable** in application settings (not hardcoded, not per-contact).
+- **Photos**: **one photo per contact** (an avatar/profile picture) — no gallery.
+- **Backups**: **`neo4j-admin database dump` plus an additional structured export (JSON/CSV)** for portability/migration/audit, not the raw dump alone.
 
 ## Technical specification
 
@@ -56,21 +59,21 @@ Also clarify any other spec items you consider insufficiently defined for design
 
 The application is intended for maintaining a personal networking base and visually analyzing connections between people. The application is based on the book "Networking for Spies."
 
-The user will be able to create and edit contact cards, add photos, contact details, job title, company, city, tags, interests, notes, and the place and date they met. For each person, a history of meetings, calls, correspondence, referrals, and joint projects will be available.
+The user will be able to create and edit contact cards, add a photo, contact details, job title, company, city, tags, interests, notes, and the place and date they met. For each person, a history of meetings, calls, correspondence, referrals, and joint projects will be available.
 
 Contacts can be linked to one another, as well as to companies, events, communities, projects, and professional interests. For each connection, its type, date, comment, and degree of closeness are specified.
 
-The main screen will contain search, filters, recently added contacts, upcoming reminders, and a list of people who haven't been in touch for a while. The user will be able to assign the next action: write, call, meet, or come back to the contact later.
+The main screen will contain search, filters, recently added contacts, upcoming reminders, and a list of people who haven't been in touch for a while (threshold configurable in settings). The user will be able to assign the next action: write, call, meet, or come back to the contact later.
 
-A graphical map will allow viewing contacts and connections interactively, expanding the surroundings of a selected person, finding chains of acquaintances, and filtering the graph by companies, tags, events, and interests. The interface should be split into 3 circles — FC SC SC — per the book.
+A graphical map will allow viewing contacts and connections interactively, expanding the surroundings of a selected person, finding chains of acquaintances, and filtering the graph by companies, tags, events, and interests. The interface is split into 3 concentric circles per the book: **Support Circle** (core), **Functional Circles** (middle layer), **Success Circle** (outer zone); the user manually assigns each contact to one of the three.
 
 Import and export of data, duplicate search, contact archiving, and backups are also provided. Data deletion is performed only after user confirmation.
 
-There is a CLI for connecting an AI agent.
+There is a CLI for connecting an AI agent (Claude API / Codex API), running as a standalone utility that talks to the main application over its API.
 
-The application allows describing a networking goal. There is a specific goal for the coming month.
-The application allows specifying a contact type: connector, condenser, bridges, insiders (private contacts).
-Contact criteria: dangerous, interesting, difficult.
+The application allows describing an overall networking goal, plus a separate goal for the coming month (with history by month).
+The application allows specifying a contact type: connector, condenser, bridge, insider (private contact).
+Contact criteria: dangerous, interesting, difficult (1–10 scale each).
 
 ### 2. Recommended technology stack
 
@@ -86,6 +89,7 @@ Contact criteria: dangerous, interesting, difficult.
 
 #### Graph model
 ```
+(:Contact {circle})                                                    // circle: SupportCircle | FunctionalCircles | SuccessCircle
 (:Contact)-[:HAD_INTERACTION]->(:Interaction {type, date, comment})   // meetings/calls/correspondence/referrals
 (:Contact)-[:KNOWS {type, date, comment, closeness}]->(:Contact)
 (:Contact)-[:WORKS_AT]->(:Company)
@@ -95,12 +99,13 @@ Contact criteria: dangerous, interesting, difficult.
 (:Contact)-[:INTERESTED_IN]->(:Interest)
 (:Contact)-[:TAGGED]->(:Tag)
 (:Contact)-[:NEXT_ACTION]->(:Action {type, due_date})                 // write/call/meet/come back later
+(:Contact)-[:HAS_RELATIVE]->(:Relative {name, relation_type, birthday})
 ```
 The interaction history consists of separate nodes rather than a list in a contact property: this enables aggregations ("when did we last see each other") and is easy to extend.
 
 #### Frontend / UI
 - CRUD, dashboard (search, filters, recent, reminders, "haven't been in touch for a while") — **NiceGUI**.
-- Graph screen: Cypher query (`shortestPath`, variable-length paths, filters by labels/properties) → JSON → rendered via **NVL** (Neo4j Visualization Library) or **Cytoscape.js**, embedded as an HTML/JS component in NiceGUI.
+- Graph screen: Cypher query (`shortestPath`, variable-length paths, filters by labels/properties) → JSON → rendered via **NVL** (Neo4j Visualization Library) or **Cytoscape.js**, embedded as an HTML/JS component in NiceGUI. Draws the 3 concentric circles (Support/Functional/Success) as background zones, placing each contact per its `circle` property.
 
 #### Search and dedup
 - Neo4j **Full-text index** (Lucene) over name/notes/tags.
@@ -110,28 +115,35 @@ The interaction history consists of separate nodes rather than a list in a conta
 - **pandas** (CSV/Excel) + **vobject** (vCard) for input/output; import — batched `UNWIND ... MERGE`.
 
 #### Reminders
-- **APScheduler** — periodic retrieval of due `Action`s/overdue contacts via Cypher, without Celery/Redis.
+- **APScheduler** — periodic retrieval of due `Action`s/overdue contacts via Cypher, without Celery/Redis. The "haven't been in touch" threshold is read from user-configurable settings.
 
 #### Deletion with confirmation / archiving
 - Soft delete: an `archived: true` / `deleted_at` property on the `Contact` node instead of a physical `DELETE` — confirmation at the UI level (a modal); physical deletion is a separate, rare operation.
 
+#### Backups
+- `neo4j-admin database dump` (Community, on a stopped instance, via cron) **plus** a structured export (JSON/CSV, via a small export script over the repositories) for a portable, human-readable copy alongside the binary dump.
+
 #### Tests
 - **pytest** + **testcontainers[neo4j]** — integration tests with a real Neo4j container.
 
-#### CLI / AI integration (needs clarification — see item 5 in the "Clarifications on the spec" section)
-- Work is planned through the **Claude API** and the **Codex API** — the specific architecture (a single abstract interface over the providers vs. direct calls to each SDK, key storage, a separate CLI process or a command within the main application) has not been defined and must be clarified with the user before designing this layer.
+#### CLI / AI integration
+- Standalone CLI utility (separate entry point/executable), calling the main application's HTTP API — not a command inside the main app process.
+- LLM access goes through a single abstract **`LLMProvider`** interface, with `ClaudeProvider` (Claude API) and `CodexProvider` (Codex API) implementations; the active provider is chosen via configuration.
+- API keys for both providers are **not** stored in `.env`/config directly: the app fetches them from **1Password** via a **Service Account token + the official 1Password SDK** at startup (no 1Password desktop app dependency — works in Docker/production).
 
 ### 3. Final technology set
 
 ```
 FastAPI + neo4j async driver + Pydantic v2 (Cypher repositories)
 Neo4j Community in Docker (or Aura Free)
-NiceGUI + NVL/Cytoscape.js (graph screen)
+NiceGUI + NVL/Cytoscape.js (graph screen, 3 concentric circles)
 pandas + vobject, rapidfuzz
 APScheduler
 pytest + testcontainers[neo4j]
+Standalone CLI (own entry point) → main app HTTP API → LLMProvider abstraction (Claude API / Codex API)
+1Password Service Account + official SDK (Claude/Codex API key retrieval)
 ```
 
 ---
 
-**Start with step 1**, but keep in mind: some of the clarifying questions have already been resolved by the user's answers in the "Clarifications on the spec" section — there is no need to ask about them again. Be sure to ask about the items marked **⚠️ Still needs clarification** within that section (the final, deduplicated list of contact types; the circle↔target-zone mapping; the status of the overall networking goal as distinct from the monthly one; the structure of a contact's "relatives"/"important facts"; the architecture for integrating with the Claude API and the Codex API), plus any other ambiguities you notice yourself in the spec above. Only after these questions have been resolved should you move on to step 2 (the plan), wait for confirmation (step 3), and only then proceed to code (step 4).
+**All clarifications are resolved** (see "Clarifications on the spec" above). Proceed to step 2: draft the step-by-step implementation plan, present it for confirmation (step 3), and only then move to code (step 4).

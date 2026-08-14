@@ -1,0 +1,19 @@
+target-version = "py314"
+line-length = 100
+
+[lint]
+select = [
+    "E",   # pycodestyle errors
+    "F",   # pyflakes
+    "I",   # isort
+    "UP",  # pyupgrade
+    "B",   # bugbear
+    "SIM", # simplify
+    "C4",  # comprehensions
+]
+ignore = [
+    "B008",  # FastAPI's `Depends(...)` as a default arg is the idiomatic pattern, not a bug
+]
+
+[format]
+quote-style = "double"

@@ -1,0 +1,45 @@
+services:
+  neo4j:
+    image: neo4j:5-community
+    container_name: networking4j-neo4j
+    ports:
+      - "7474:7474" # HTTP browser UI
+      - "7687:7687" # Bolt
+    environment:
+      NEO4J_AUTH: "${NEO4J_USER:-neo4j}/${NEO4J_PASSWORD:-neo4j}"
+      NEO4J_PLUGINS: '["apoc"]'
+    volumes:
+      - neo4j_data:/data
+      - ./backups:/backups
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:7474"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  # Stage 9/10: the app itself, for the single-VPS deploy (see DEPLOY.md).
+  # Gated behind the "prod" profile so plain `docker compose up`/`make
+  # docker-up` (local dev) keeps only starting `neo4j` — local dev still
+  # runs the app directly via `make run` (uvicorn --reload) for fast
+  # iteration. Bring this service up explicitly with `make deploy-up`.
+  # No TLS/reverse proxy in front of this yet (explicit user decision) — the
+  # published port is plain HTTP; don't expose it beyond a trusted network.
+  app:
+    build: .
+    container_name: networking4j-app
+    profiles: ["prod"]
+    ports:
+      - "${APP_PORT:-8000}:8000"
+    env_file: .env
+    environment:
+      # Overrides whatever NEO4J_URI is in .env (which defaults to
+      # localhost, correct for bare-metal `make run` but not for a
+      # container reaching a sibling container) to the compose service name.
+      NEO4J_URI: "bolt://neo4j:7687"
+    depends_on:
+      neo4j:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  neo4j_data:

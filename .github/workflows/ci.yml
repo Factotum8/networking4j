@@ -1,0 +1,30 @@
+name: CI
+
+# Stage 9/10: runs the same checks `make lint`/`make test` do locally, on
+# every push/PR. This repo is public, so GitHub-hosted runners are free and
+# unmetered — no minute budget to worry about. Docker ships preinstalled on
+# ubuntu-latest runners, so the testcontainers-backed tests run for real
+# here too, not skipped.
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+
+jobs:
+  lint-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: prefix-dev/setup-pixi@v0.10.1
+        with:
+          environments: default
+
+      - name: ruff
+        run: pixi run -e default ruff check .
+
+      - name: mypy
+        run: pixi run -e default mypy app cli tests
+
+      - name: pytest
+        run: pixi run -e default pytest -v
