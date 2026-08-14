@@ -96,7 +96,7 @@ def compute_positions(nodes: list[GraphVisNode]) -> dict[str, tuple[float, float
 
 
 def build_option(
-    snapshot: GraphSnapshot, positions: dict[str, tuple[float, float]]
+    snapshot: GraphSnapshot, positions: dict[str, tuple[float, float]], zoom: float = 1.0
 ) -> dict[str, Any]:
     nodes = [
         {
@@ -125,7 +125,20 @@ def build_option(
         }
         for edge in snapshot.edges
     ]
-    bound = _MAX_RADIUS * 1.15
+    # `zoom` shrinks/grows the shared axis range around the same fixed node
+    # positions — higher zoom = smaller bound = nodes spread further apart
+    # visually. This is a real fix, not a workaround: confirmed empirically
+    # (a standalone echarts sandbox page, and real trusted mouse-wheel
+    # input via browser automation, not just a synthetic JS event) that a
+    # `graph` series bound to `coordinateSystem: cartesian2d` does NOT
+    # respond to ECharts' own `dataZoom`/`roam` interactive zoom — the
+    # axis range never changes on wheel input, silently, no console error.
+    # Likely because `graph` series has no `xAxisIndex`/`yAxisIndex` of its
+    # own for dataZoom to target, unlike scatter/line/bar. Re-issuing
+    # `setOption` with a new axis range (what the +/- zoom buttons in
+    # app/ui/pages/graph.py do) uses the exact same rendering path that
+    # already correctly draws the initial view, so it's guaranteed to work.
+    bound = (_MAX_RADIUS * 1.15) / zoom
 
     return {
         "tooltip": {},

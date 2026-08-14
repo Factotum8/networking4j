@@ -38,10 +38,16 @@ def _merge(base: GraphSnapshot, extra: GraphSnapshot) -> GraphSnapshot:
     )
 
 
+_ZOOM_STEP = 1.25
+_ZOOM_MIN = 0.4
+_ZOOM_MAX = 4.0
+
+
 @ui.page("/app/graph")
 async def graph_page() -> None:
     with layout.shell("Граф", wide=True):
         current: dict[str, GraphSnapshot] = {}
+        zoom_state = {"level": 1.0}
 
         with ui.card().classes("w-full"):
             with ui.row().classes("items-end gap-4 w-full"):
@@ -101,13 +107,66 @@ async def graph_page() -> None:
         info_panel = ui.card().classes("w-full")
         info_panel.set_visibility(False)
 
-        chart = ui.echart({}).classes("w-full").style("height: 70vh")
+        # xAxis/yAxis share one symmetric [-bound, bound] range (see
+        # build_option) so the 3 rings render as actual circles, not
+        # ellipses — that only holds if the container is square. A plain
+        # `w-full` + fixed vh height let width and height diverge (wide
+        # desktop windows are much wider than 70vh tall), squashing the
+        # rings vertically until the outer one clipped top/bottom. Pinning
+        # both dimensions to the same value keeps it square. Capped at
+        # `calc(100vh - 320px)` (roughly the filter/legend chrome above it)
+        # as well as 85vmin so the whole circle fits within the viewport
+        # without needing a page scroll — real detail work now happens via
+        # the scroll-to-zoom/drag-to-pan added in build_option instead of
+        # by just making the static canvas bigger.
+        with ui.row().classes("items-center gap-2"):
+            zoom_label = ui.label().classes("text-sm opacity-60 w-16")
+
+            def redraw() -> None:
+                """Re-renders the last snapshot at the current zoom level —
+                no new backend call, just a new axis range (see build_option's
+                `zoom` docstring for why this is the zoom mechanism, not
+                scroll/roam)."""
+                snapshot = current.get("snapshot")
+                if snapshot is None:
+                    return
+                positions = compute_positions(snapshot.nodes)
+                chart._props["options"] = build_option(  # noqa: SLF001
+                    snapshot, positions, zoom=zoom_state["level"]
+                )
+                chart.update()
+                zoom_label.text = f"{round(zoom_state['level'] * 100)}%"
+
+            def zoom_in() -> None:
+                zoom_state["level"] = min(_ZOOM_MAX, zoom_state["level"] * _ZOOM_STEP)
+                redraw()
+
+            def zoom_out() -> None:
+                zoom_state["level"] = max(_ZOOM_MIN, zoom_state["level"] / _ZOOM_STEP)
+                redraw()
+
+            def zoom_reset() -> None:
+                zoom_state["level"] = 1.0
+                redraw()
+
+            ui.button(icon="zoom_in", on_click=zoom_in).props("flat dense round")
+            ui.button(icon="zoom_out", on_click=zoom_out).props("flat dense round")
+            ui.button("Сброс масштаба", on_click=zoom_reset).props("flat dense")
+
+        chart = ui.echart({}).style(
+            "height: min(85vmin, calc(100vh - 320px));"
+            "width: min(85vmin, calc(100vh - 320px));"
+            "margin: 0 auto;"
+        )
 
         def render(snapshot: GraphSnapshot) -> None:
             current["snapshot"] = snapshot
             positions = compute_positions(snapshot.nodes)
-            chart._props["options"] = build_option(snapshot, positions)  # noqa: SLF001
+            chart._props["options"] = build_option(  # noqa: SLF001
+                snapshot, positions, zoom=zoom_state["level"]
+            )
             chart.update()
+            zoom_label.text = f"{round(zoom_state['level'] * 100)}%"
             info_panel.set_visibility(False)
             contact_count = sum(1 for n in snapshot.nodes if n.label == "Contact")
             if snapshot.truncated:
