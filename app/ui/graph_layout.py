@@ -161,6 +161,21 @@ def build_option(
     return {
         "tooltip": {},
         "legend": [{"data": _CATEGORY_NAMES, "top": 0}],
+        # Equal pixel margin on all 4 sides of a *square* container (the
+        # chart element is always sized width == height, see graph.py)
+        # keeps the plotting area itself square too — same px-per-unit
+        # scale on both axes. Without this, ECharts' default auto-margins
+        # aren't symmetric (the legend above reserves extra top space,
+        # sides don't match), so x and y ended up scaled differently: the
+        # ring circles (drawn via the custom series below, which derives
+        # its pixel radius from the x-axis scale only) stayed visually
+        # circular, but contact nodes — placed via the real, now-unequal
+        # x/y mapping — landed off of their own ring, appearing scattered
+        # instead of sitting on/inside their circle. A real bug, found by
+        # computing each node's data-space position server-side (always
+        # exactly on its circle's radius, confirmed correct) and comparing
+        # against where it actually rendered on screen.
+        "grid": {"left": 50, "right": 50, "top": 50, "bottom": 50},
         "xAxis": {"show": False, "min": cx - bound, "max": cx + bound, "type": "value"},
         "yAxis": {"show": False, "min": cy - bound, "max": cy + bound, "type": "value"},
         "series": [
