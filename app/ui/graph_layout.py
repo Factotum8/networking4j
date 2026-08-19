@@ -95,8 +95,21 @@ def compute_positions(nodes: list[GraphVisNode]) -> dict[str, tuple[float, float
     return positions
 
 
+def bound_for_zoom(zoom: float) -> float:
+    """Half-width of the shared axis range at a given zoom level. Exposed
+    (not just inlined in `build_option`) because the graph page's
+    drag-to-pan handler needs the exact same value to convert on-screen
+    pixel deltas into this module's data-space units — using a different
+    formula there would make dragging feel inconsistent with the current
+    zoom level."""
+    return (_MAX_RADIUS * 1.15) / zoom
+
+
 def build_option(
-    snapshot: GraphSnapshot, positions: dict[str, tuple[float, float]], zoom: float = 1.0
+    snapshot: GraphSnapshot,
+    positions: dict[str, tuple[float, float]],
+    zoom: float = 1.0,
+    center: tuple[float, float] = (0.0, 0.0),
 ) -> dict[str, Any]:
     nodes = [
         {
@@ -125,26 +138,31 @@ def build_option(
         }
         for edge in snapshot.edges
     ]
-    # `zoom` shrinks/grows the shared axis range around the same fixed node
-    # positions — higher zoom = smaller bound = nodes spread further apart
-    # visually. This is a real fix, not a workaround: confirmed empirically
-    # (a standalone echarts sandbox page, and real trusted mouse-wheel
-    # input via browser automation, not just a synthetic JS event) that a
+    # `zoom`/`center` shrink-and-shift the shared axis range around the same
+    # fixed node positions — higher zoom = smaller bound = nodes spread
+    # further apart visually; `center` recenters the window for panning.
+    # This is a real fix, not a workaround: confirmed empirically (a
+    # standalone echarts sandbox page, and real trusted mouse-wheel/drag
+    # input via browser automation, not just synthetic JS events) that a
     # `graph` series bound to `coordinateSystem: cartesian2d` does NOT
-    # respond to ECharts' own `dataZoom`/`roam` interactive zoom — the
-    # axis range never changes on wheel input, silently, no console error.
-    # Likely because `graph` series has no `xAxisIndex`/`yAxisIndex` of its
-    # own for dataZoom to target, unlike scatter/line/bar. Re-issuing
-    # `setOption` with a new axis range (what the +/- zoom buttons in
-    # app/ui/pages/graph.py do) uses the exact same rendering path that
-    # already correctly draws the initial view, so it's guaranteed to work.
-    bound = (_MAX_RADIUS * 1.15) / zoom
+    # respond to ECharts' own `dataZoom`/`roam` interactive zoom-or-pan at
+    # all — the axis range never changes on wheel or drag input, silently,
+    # no console error. Likely because `graph` series has no
+    # `xAxisIndex`/`yAxisIndex` of its own for dataZoom to target, unlike
+    # scatter/line/bar, and `roam`'s own view transform is apparently only
+    # wired up under the axis-less "none" layout. Re-issuing `setOption`
+    # with a new axis range (what the zoom buttons and the mousemove-driven
+    # drag-to-pan handler in app/ui/pages/graph.py both do) uses the exact
+    # same rendering path that already correctly draws the initial view,
+    # so it's guaranteed to work.
+    bound = bound_for_zoom(zoom)
+    cx, cy = center
 
     return {
         "tooltip": {},
         "legend": [{"data": _CATEGORY_NAMES, "top": 0}],
-        "xAxis": {"show": False, "min": -bound, "max": bound, "type": "value"},
-        "yAxis": {"show": False, "min": -bound, "max": bound, "type": "value"},
+        "xAxis": {"show": False, "min": cx - bound, "max": cx + bound, "type": "value"},
+        "yAxis": {"show": False, "min": cy - bound, "max": cy + bound, "type": "value"},
         "series": [
             {
                 # The 3 background rings — one custom-series datum per
@@ -176,8 +194,19 @@ def build_option(
             {
                 "type": "graph",
                 "coordinateSystem": "cartesian2d",
-                "roam": True,
-                "draggable": True,
+                # Both explicitly False. `roam`'s own view-transform is a
+                # no-op under coordinateSystem: cartesian2d (see the big
+                # comment above `bound`) — but even inert, it still makes
+                # zrender (echarts' internal canvas layer) capture and
+                # stopPropagation() every mousedown/mousemove for its own
+                # dead-end pan handling, so the hand-rolled drag-to-pan
+                # listeners in app/ui/pages/graph.py never see the events
+                # while it's on. `draggable` lets you grab and reposition a
+                # single node, which (confirmed by reproducing it) also
+                # wins over a whole-graph drag whenever it starts on top of
+                # a node.
+                "roam": False,
+                "draggable": False,
                 "label": {"show": True, "position": "right"},
                 "categories": [{"name": name} for name in _CATEGORY_NAMES],
                 "data": nodes,
