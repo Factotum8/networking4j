@@ -139,6 +139,20 @@ async def graph_page() -> None:
         # fold. `aspect-ratio` also makes this responsive for free (recomputed
         # by the browser on any width change, incl. narrow phone/tablet
         # viewports) without needing a resize listener.
+        #
+        # **Real bug found 2026-08-19:** `aspect-ratio` was silently having
+        # no effect at all — confirmed by inspecting the live DOM, the box
+        # measured 1448px wide but only 256px tall (= NiceGUI's own
+        # `nicegui.css` default `.nicegui-echart { height: 16rem }`,
+        # 16*16px), squashing the rings into ellipses. `aspect-ratio` only
+        # fills in a dimension that's `auto`; our `.style()` call overrides
+        # `width` but never touched `height`, so the framework's explicit
+        # `16rem` stayed in effect and aspect-ratio had nothing to resolve.
+        # `height: auto` below is the actual fix — it's what makes `height`
+        # auto again so aspect-ratio can compute it from the (now correct)
+        # width. `flex-shrink: 0` is cheap defensive insurance on top (this
+        # div is a flex item of the `ui.column` above it), not itself the
+        # fix — flex-shrink was never what caused the squash here.
         with ui.row().classes("items-center gap-2"):
             zoom_label = ui.label().classes("text-sm opacity-60 w-16")
 
@@ -182,7 +196,12 @@ async def graph_page() -> None:
             )
 
         chart = ui.echart({}).style(
-            "width: min(100%, 1600px);aspect-ratio: 1 / 1;margin: 0 auto;cursor: grab;"
+            "width: min(100%, 1600px);"
+            "height: auto;"
+            "aspect-ratio: 1 / 1;"
+            "margin: 0 auto;"
+            "cursor: grab;"
+            "flex-shrink: 0;"
         )
 
         def handle_pan(e: GenericEventArguments) -> None:
