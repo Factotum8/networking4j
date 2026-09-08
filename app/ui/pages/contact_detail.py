@@ -148,14 +148,16 @@ def _render_main_form(contact: Contact | None) -> None:
                 return
             contact_handler = deps.get_contact_handler()
             if is_new:
-                created = await contact_handler.create(Contact.model_validate(updates))
+                await contact_handler.create(Contact.model_validate(updates))
                 ui.notify("Контакт создан", type="positive")
-                ui.navigate.to(f"/app/contacts/{created.id}")
             else:
                 assert c.id is not None
                 await contact_handler.update(c.id, updates)
                 ui.notify("Сохранено", type="positive")
-                ui.navigate.reload()
+            ui.navigate.to("/app/graph")
+
+        def back_to_graph() -> None:
+            ui.navigate.to("/app/graph")
 
         async def archive() -> None:
             assert c.id is not None
@@ -187,6 +189,7 @@ def _render_main_form(contact: Contact | None) -> None:
             dialog.open()
 
         with ui.row().classes("w-full justify-end gap-2"):
+            ui.button("Назад", on_click=back_to_graph).props("flat")
             if not is_new:
                 if c.archived:
                     ui.button("Восстановить из архива", on_click=unarchive).props("flat")
