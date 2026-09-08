@@ -17,9 +17,9 @@ from nicegui import ui
 # first. Discovered by curling every page after wiring it up — not a
 # design choice, a routing necessity.
 _NAV_LINKS: list[tuple[str, str]] = [
-    ("Дашборд", "/"),
+    ("Граф", "/"),
     ("Контакты", "/app/contacts"),
-    ("Граф", "/app/graph"),
+    ("Дашборд", "/app/dashboard"),
     ("Дубликаты", "/app/duplicates"),
     ("Импорт/экспорт", "/app/import-export"),
     ("Настройки", "/app/settings"),

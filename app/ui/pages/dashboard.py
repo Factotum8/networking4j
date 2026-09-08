@@ -33,7 +33,7 @@ def _contact_row(contact: Contact, *, subtitle: str = "") -> None:
             ui.label(meta).classes("text-xs opacity-60")
 
 
-@ui.page("/")
+@ui.page("/app/dashboard")
 async def dashboard_page() -> None:
     with layout.shell("Дашборд"):
         # --- Search ---

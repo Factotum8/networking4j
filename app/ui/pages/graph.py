@@ -24,30 +24,12 @@ from app.ui.labels import CIRCLE_LABELS, CONTACT_TYPE_LABELS
 _DEFAULT_LIMIT = 150
 
 
-def _merge(base: GraphSnapshot, extra: GraphSnapshot) -> GraphSnapshot:
-    """Adds `extra`'s nodes/edges to `base` without duplicating anything
-    already shown — backs the "expand neighborhood" action, which should
-    grow the current view rather than replace it."""
-    nodes_by_id = {n.id: n for n in base.nodes}
-    for node in extra.nodes:
-        nodes_by_id.setdefault(node.id, node)
-    edges_by_id = {e.id: e for e in base.edges}
-    for edge in extra.edges:
-        edges_by_id.setdefault(edge.id, edge)
-    nodes = list(nodes_by_id.values())
-    contact_count = sum(1 for n in nodes if n.label == "Contact")
-    return GraphSnapshot(
-        nodes=nodes,
-        edges=list(edges_by_id.values()),
-        total_contacts=max(base.total_contacts, contact_count),
-    )
-
-
 _ZOOM_STEP = 1.25
 _ZOOM_MIN = 0.4
 _ZOOM_MAX = 4.0
 
 
+@ui.page("/")
 @ui.page("/app/graph")
 async def graph_page() -> None:
     with layout.shell("Граф", wide=True):
@@ -122,8 +104,31 @@ async def graph_page() -> None:
             ui.button("Найти путь", on_click=find_path)
             ui.button("Показать весь граф", on_click=refresh_snapshot).props("flat")
 
-        info_panel = ui.card().classes("w-full")
+        # A real centered popup (fixed position + dimmed backdrop), not
+        # `ui.dialog()` — confirmed by hand that opening a `ui.dialog()`
+        # on this page reliably breaks the websocket connection ("Message
+        # too long") on the very first click, reproducible even on a fresh
+        # tab/server with no filters applied yet. Root cause not pinned
+        # down (likely Quasar's dialog teleport interacting badly with the
+        # echart component sharing the page), but this plain
+        # card-with-backdrop achieves the same "popup" look via the same
+        # clear()/set_visibility() pattern already proven stable on this
+        # page, so it sidesteps the bug entirely rather than working around
+        # it.
+        info_backdrop = ui.element("div").classes("fixed inset-0 bg-black/40 z-40")
+        info_backdrop.set_visibility(False)
+        info_panel = (
+            ui.card()
+            .classes("fixed left-1/2 top-1/2 z-50 shadow-lg")
+            .style("transform: translate(-50%, -50%);")
+        )
         info_panel.set_visibility(False)
+
+        def hide_info() -> None:
+            info_backdrop.set_visibility(False)
+            info_panel.set_visibility(False)
+
+        info_backdrop.on("click", hide_info)
 
         # xAxis/yAxis share one symmetric [-bound, bound] range (see
         # build_option) so the 3 rings render as actual circles, not
@@ -182,11 +187,16 @@ async def graph_page() -> None:
                 zoom_state["level"] = max(_ZOOM_MIN, zoom_state["level"] / _ZOOM_STEP)
                 redraw()
 
-            def reset_view() -> None:
+            async def reset_view() -> None:
+                # Resets pan/zoom *and* drops out of an isolated
+                # "Развернуть окружение" view back to the full (filtered)
+                # graph — re-fetching rather than just calling redraw()
+                # is what makes this actually undo an expand, not just
+                # re-center whatever subset is currently shown.
                 zoom_state["level"] = 1.0
                 center_state["x"] = 0.0
                 center_state["y"] = 0.0
-                redraw()
+                await refresh_snapshot()
 
             ui.button(icon="zoom_in", on_click=zoom_in).props("flat dense round")
             ui.button(icon="zoom_out", on_click=zoom_out).props("flat dense round")
@@ -256,7 +266,7 @@ async def graph_page() -> None:
             )
             chart.update()
             zoom_label.text = f"{round(zoom_state['level'] * 100)}%"
-            info_panel.set_visibility(False)
+            hide_info()
             contact_count = sum(1 for n in snapshot.nodes if n.label == "Contact")
             if snapshot.truncated:
                 status_label.text = f"Показано {contact_count} из {snapshot.total_contacts}"
@@ -270,17 +280,32 @@ async def graph_page() -> None:
                 return
             info_panel.clear()
             with info_panel:
-                ui.label(node.name).classes("text-base font-bold")
-                with ui.row().classes("gap-2"):
+                ui.label(node.name).classes("text-lg font-bold")
+                with ui.row().classes("gap-2 items-center"):
                     if node.label == "Contact":
-                        ui.link("Открыть карточку", f"/app/contacts/{node_id}")
+                        # A button, not `ui.link` — a plain link rendered
+                        # with browser-default anchor styling (underline,
+                        # link-blue) next to Quasar `flat dense` buttons
+                        # looked like two different UI kits sharing one
+                        # popup. `ui.navigate.to` keeps the actual
+                        # navigation, just via a button so the font/casing/
+                        # spacing matches its neighbors.
+                        ui.button(
+                            "Открыть карточку",
+                            on_click=lambda: ui.navigate.to(f"/app/contacts/{node_id}"),
+                        ).props("flat dense")
 
                         async def expand() -> None:
+                            # Isolates the view on this contact's immediate
+                            # neighborhood — replaces the current snapshot
+                            # (not merges into it) so only the connected
+                            # nodes stay on screen and everything else drops
+                            # away; "Сбросить вид" or "Показать весь граф"
+                            # brings the rest back.
                             handler = deps.get_graph_handler()
-                            extra = await handler.neighbors(node_id)
-                            base = current.get("snapshot")
-                            if base is not None:
-                                render(_merge(base, extra))
+                            neighborhood = await handler.neighbors(node_id)
+                            hide_info()
+                            render(neighborhood)
 
                         ui.button("Развернуть окружение", on_click=expand).props("flat dense")
                     else:
@@ -295,11 +320,15 @@ async def graph_page() -> None:
                             snapshot = await handler.snapshot(
                                 limit=limit, dimension_filter=(rel_type, target_id)
                             )
+                            hide_info()
                             render(snapshot)
 
                         ui.button("Показать связанные контакты", on_click=filter_by_node).props(
                             "flat dense"
                         )
+                with ui.row().classes("justify-end w-full"):
+                    ui.button("Закрыть", on_click=hide_info).props("flat")
+            info_backdrop.set_visibility(True)
             info_panel.set_visibility(True)
 
         def on_point_click(e: EChartPointClickEventArguments) -> None:
